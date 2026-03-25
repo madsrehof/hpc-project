@@ -1,0 +1,7 @@
+Loaded module: cuda/11.8
+No Nvidia-GPUs found in this machine, please use a GPU-node
+
+
+
+Loading cuda/11.8
+  ERROR: Module evaluation aborted
