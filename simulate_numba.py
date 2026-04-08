@@ -9,11 +9,13 @@ import time
 
 import matplotlib.pyplot as plt
 
+from numba import jit, cuda
+
 def load_data(load_dir, bid):
     SIZE = 512
     u = np.zeros((SIZE + 2, SIZE +2))
-    u[1:-1, 1:-1] = np.load(join(load_dir, f"{bid}_domain.npy"))
-    interior_mask = np.load(join(load_dir, f"{bid}_interior.npy"))
+    u[1:-1, 1:-1] = np.load(join(load_dir, f"{bid}_domain.npy")) # shape (514, 514)
+    interior_mask = np.load(join(load_dir, f"{bid}_interior.npy")) # shape (512, 512)
     return u, interior_mask
 
 
@@ -31,6 +33,55 @@ def jacobi(u, interior_mask, max_iter, atol=1e-6):
             break
     return u
 
+@jit(nopython=True)
+def jacobi_jit(u, interior_mask, max_iter, atol=1e-6):
+    u = np.copy(u)
+    for i in range(max_iter):
+        # Compute average of left, right, up and down neighbors, see eq. (1)
+        u_new = 0.25 * (u[1:-1, :-2] + u[1:-1, 2:] + u[:-2, 1:-1] + u[2:, 1:-1])
+        u_new_interior = u_new[interior_mask]
+        delta = np.abs(u[1:-1, 1:-1][interior_mask] - u_new_interior).max()
+        u[1:-1, 1:-1][interior_mask] = u_new_interior
+
+        if delta < atol:
+            break
+    return u
+
+
+@cuda.jit #(device=True)
+def _jacobi_step(u, interior_mask, u_new):
+    j, i = cuda.grid(2)
+    # do stuff based on i and j:
+    if interior_mask[i,j]:
+        u_new[i,j] = 0.25 * (u[i,j-1] + u[i,j+1] + u[i-1,j] + u[i+1,j])
+    else:
+        u_new[i,j] = u[i,j]
+
+
+
+def jacobi_cuda(u, interior_mask, max_iter, atol=1e-6):
+
+    d_u = cuda.to_device(u) # move to GPU
+    d_mask = cuda.to_device(interior_mask)
+    d_u_new = cuda.device_array_like(d_u) # 
+
+    tpb = 32, 32 # threads per block
+    bpg =  (
+        (u.shape[1] + tpb[0] - 1) // tpb[0], 
+        (u.shape[0] + tpb[1] - 1) // tpb[1] # Blocks per grid
+    )
+
+    for iter in range(max_iter):
+        _jacobi_step[bpg, tpb](d_u, d_u_new, d_mask)
+        d_u, d_u_new = d_u_new, d_u
+
+        # check for convergence
+        
+
+    u_new = d_u_new.copy_to_host() # back to CPU
+
+
+
 def summary_stats(u, interior_mask):
     u_interior = u[1:-1, 1:-1][interior_mask]
     mean_temp = u_interior.mean()
@@ -46,7 +97,7 @@ def summary_stats(u, interior_mask):
 
 
 if __name__ == '__main__':
-    print("Multiprocessing using Dynamic scheduling:")
+    print("Multiprocessing with dynamic scheduling using Numba JIT on CPU:")
     # Load data
     LOAD_DIR = '/dtu/projects/02613_2025/data/modified_swiss_dwellings/'
     with open(join(LOAD_DIR, 'building_ids.txt'), 'r') as f:
@@ -102,7 +153,7 @@ if __name__ == '__main__':
     ax.set_ylabel("Wall clock time in seconds", fontsize=11)
     ax.plot(NUM_PROCS, times)
     fig.tight_layout()
-    fig.savefig(cwd+"/plots/runtimes_dynamic")
+    fig.savefig(cwd+"/plots/runtimes_dynamic_numba")
 
     speedups = [times[0]/times[i] for i in range(len(NUM_PROCS))]
     print(speedups)
@@ -113,5 +164,5 @@ if __name__ == '__main__':
     ax.set_ylabel("Speedups: S(p) = T(1)/T(p)", fontsize=11)
     ax.plot(NUM_PROCS, speedups)
     fig.tight_layout()
-    fig.savefig(cwd+"/plots/speedups_dynamic")
+    fig.savefig(cwd+"/plots/speedups_dynamic_numba")
 

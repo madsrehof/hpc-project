@@ -1,5 +1,0 @@
-Wrote profile results to simulate.py.lprof
-Inspect results with:
-python -m line_profiler -rmt "simulate.py.lprof"
-Timer unit: 1e-06 s
-
