@@ -1,6 +1,6 @@
 #!/bin/bash
-#BSUB -J simulate_parallel_dynamic
-#BSUB -q c02613
+#BSUB -J simulate_dynamic_jit
+#BSUB -q hpc
 #BSUB -R "rusage[mem=1GB]"
 #BSUB -B
 #BSUB -N
@@ -13,8 +13,8 @@
 #BSUB -R "select[model==XeonE5_2650v4]"
 
 source /dtu/projects/02613_2025/conda/conda_init.sh
-conda activate 02613_2026
+conda activate 02613
 
-python3 simulate_numba.py 100 16
+python3 simulate_parallel_dynamic_jit.py 100 16
 
 

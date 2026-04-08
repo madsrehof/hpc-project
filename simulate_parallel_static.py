@@ -115,7 +115,7 @@ if __name__ == '__main__':
                 stats = results_map[bid]
                 print(f"{bid},", ", ".join(str(stats[k]) for k in stat_keys))
 
-        average_run_times = [a + t / RUNS for a, t in zip(average_run_times or [0] * len(run_times), run_times)]
+        average_run_times = [run * a/(run+1) + t/(run+1) for a, t in zip(average_run_times or [0] * len(run_times), run_times)]
 
     speedups = [run_times[0]/run_times[i] for i in range(len(NUM_PROCS))]
 
