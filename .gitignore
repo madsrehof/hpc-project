@@ -1,2 +1,7 @@
 *.err
 *.out
+__pycache__/
+*.py[cod]
+*.lprof
+outputs/
+plots/
