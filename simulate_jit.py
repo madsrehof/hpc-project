@@ -2,6 +2,7 @@ from os.path import join
 import sys
 import os
 
+from time import time
 import numpy as np
 
 from view import visualize_colormap
@@ -15,8 +16,7 @@ def load_data(load_dir, bid):
     interior_mask = np.load(join(load_dir, f"{bid}_interior.npy"))
     return u, interior_mask
 
-# @profile
-@jit(nopython=True)
+
 def jacobi(u, interior_mask, max_iter, atol=1e-6):
     u = np.copy(u)
 
@@ -27,6 +27,27 @@ def jacobi(u, interior_mask, max_iter, atol=1e-6):
         delta = np.abs(u[1:-1, 1:-1][interior_mask] - u_new_interior).max()
         u[1:-1, 1:-1][interior_mask] = u_new_interior
 
+        if delta < atol:
+            break
+    return u
+
+@jit(nopython=True)
+def jacobi_jit(u, interior_mask, max_iter, atol=1e-6):
+    u = np.copy(u)
+    rows, cols = u.shape
+    for i in range(max_iter):
+        u_new = np.empty_like(u)
+        delta = 0.0
+        for row in range(1, rows - 1):
+            for col in range(1, cols - 1):
+                if interior_mask[row - 1, col - 1]: # interior_mask is
+                    u_new[row, col] = 0.25 * (u[row - 1, col] + u[row + 1, col] + u[row, col - 1] + u[row, col + 1])
+                    d = abs(u[row, col] - u_new[row, col])
+                    if d > delta:
+                        delta = d
+                else:
+                    u_new[row, col] = u[row, col] # boundary condition
+        u = u_new
         if delta < atol:
             break
     return u
@@ -70,9 +91,24 @@ if __name__ == '__main__':
     ABS_TOL = 1e-4
 
     all_u = np.empty_like(all_u0)
+
+    # warm up JIT compilation:
+    jacobi_jit(all_u0[0], all_interior_mask[0], 1, ABS_TOL)
+    
+    # measure time for JIT-compiled jacobi:
+    start = time()
+    for i, (u0, interior_mask) in enumerate(zip(all_u0, all_interior_mask)):
+        u = jacobi_jit(u0, interior_mask, MAX_ITER, ABS_TOL)
+        all_u[i] = u
+    elapsed = time() - start
+    print(f"Time taken for JIT-compiled jacobi on {N} floorplans: {elapsed:.2f} seconds")
+
+    start = time()
     for i, (u0, interior_mask) in enumerate(zip(all_u0, all_interior_mask)):
         u = jacobi(u0, interior_mask, MAX_ITER, ABS_TOL)
         all_u[i] = u
+    elapsed = time() - start
+    print(f"Time taken for referencejacobi on {N} floorplans: {elapsed:.2f} seconds")
 
     # Print summary statistics in CSV format
     stat_keys = ['mean_temp', 'std_temp', 'pct_above_18', 'pct_below_15']
@@ -80,8 +116,3 @@ if __name__ == '__main__':
     for bid, u, interior_mask in zip(building_ids, all_u, all_interior_mask):
         stats = summary_stats(u, interior_mask)
         print(f"{bid},", ", ".join(str(stats[k]) for k in stat_keys))
-
-    # Visualize
-    # cwd = os.getcwd()
-    # for i in range(N):
-    #     visualize_colormap(all_u[i], save_path=cwd + f"/plots/figure{i}")

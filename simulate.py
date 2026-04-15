@@ -2,6 +2,7 @@ from os.path import join
 import sys
 import os
 
+from time import time
 import numpy as np
 
 from view import visualize_colormap
@@ -67,9 +68,12 @@ if __name__ == '__main__':
     ABS_TOL = 1e-4
 
     all_u = np.empty_like(all_u0)
+    start = time()
     for i, (u0, interior_mask) in enumerate(zip(all_u0, all_interior_mask)):
         u = jacobi(u0, interior_mask, MAX_ITER, ABS_TOL)
         all_u[i] = u
+    elapsed = time() - start
+    print(f"Time taken for jacobi: {elapsed:.2f} seconds")
 
     # Print summary statistics in CSV format
     stat_keys = ['mean_temp', 'std_temp', 'pct_above_18', 'pct_below_15']
@@ -77,8 +81,3 @@ if __name__ == '__main__':
     for bid, u, interior_mask in zip(building_ids, all_u, all_interior_mask):
         stats = summary_stats(u, interior_mask)
         print(f"{bid},", ", ".join(str(stats[k]) for k in stat_keys))
-
-    # Visualize
-    # cwd = os.getcwd()
-    # for i in range(N):
-    #     visualize_colormap(all_u[i], save_path=cwd + f"/plots/figure{i}")
