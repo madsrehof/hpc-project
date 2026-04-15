@@ -123,7 +123,7 @@ if __name__ == '__main__':
     print("Speedups: ", speedups)
 
     fig, ax = plt.subplots()
-    ax.set_title(f"Multicore with dynamic scheduling \n runtimes on {N} floorplans", fontsize=14, fontweight="bold", pad=12)
+    ax.set_title(f"Multicore with static scheduling \n runtimes on {N} floorplans", fontsize=14, fontweight="bold", pad=12)
     ax.set_xlabel("p: number of cores", fontsize=11)
     ax.set_ylabel("Wall clock time in seconds", fontsize=11)
     ax.plot(NUM_PROCS, run_times) 
@@ -132,7 +132,7 @@ if __name__ == '__main__':
     fig.savefig(cwd+"/plots/runtimes_static")
 
     fig, ax = plt.subplots()
-    ax.set_title(f"Multicore with dynamic scheduling \n speedups on {N} floorplans", fontsize=14, fontweight="bold", pad=12)
+    ax.set_title(f"Multicore with static scheduling \n speedups on {N} floorplans", fontsize=14, fontweight="bold", pad=12)
     ax.set_xlabel("p: number of cores", fontsize=11)
     ax.set_ylabel("Speedups: S(p) = T(1)/T(p)", fontsize=11)
     ax.plot(NUM_PROCS, speedups)
