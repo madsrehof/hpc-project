@@ -8,7 +8,7 @@
 #BSUB -o Output_%J.out
 #BSUB -e Output_%J.err
 #BSUB -W 6:00
-#BSUB -n 32
+#BSUB -n 1
 #BSUB -R "span[hosts=1]"
 #BSUB -R "select[model==XeonE5_2650v4]"
 
@@ -23,6 +23,6 @@ conda activate 02613
 # python3 -m line_profiler simulate.py.lprof
 
 # Just for running
-python3 simulate.py 64
+python3 simulate.py 100
 
 

@@ -40,8 +40,13 @@ def jacobi_jit(u, interior_mask, max_iter, atol=1e-6):
         delta = 0.0
         for row in range(1, rows - 1):
             for col in range(1, cols - 1):
-                if interior_mask[row - 1, col - 1]: # interior_mask is
-                    u_new[row, col] = 0.25 * (u[row - 1, col] + u[row + 1, col] + u[row, col - 1] + u[row, col + 1])
+                if interior_mask[row - 1, col - 1]: # adjust indices for interior_mask
+                    u_new[row, col] = 0.25 * (
+                        u[row - 1, col] + 
+                        u[row + 1, col] + 
+                        u[row, col - 1] + 
+                        u[row, col + 1]
+                        )
                     d = abs(u[row, col] - u_new[row, col])
                     if d > delta:
                         delta = d
@@ -103,12 +108,21 @@ if __name__ == '__main__':
     elapsed = time() - start
     print(f"Time taken for JIT-compiled jacobi on {N} floorplans: {elapsed:.2f} seconds")
 
+    a = all_u[0]
+
     start = time()
     for i, (u0, interior_mask) in enumerate(zip(all_u0, all_interior_mask)):
         u = jacobi(u0, interior_mask, MAX_ITER, ABS_TOL)
         all_u[i] = u
     elapsed = time() - start
-    print(f"Time taken for referencejacobi on {N} floorplans: {elapsed:.2f} seconds")
+    print(f"Time taken for reference jacobi on {N} floorplans: {elapsed:.2f} seconds")
+    
+    b = all_u[0]
+
+    # sanity check: compare results from JIT and reference implementations
+    max_diff = np.abs(a - b).max()
+    print(f"Max absolute difference between JIT and reference results: {max_diff:.8f}")
+    
 
     # Print summary statistics in CSV format
     stat_keys = ['mean_temp', 'std_temp', 'pct_above_18', 'pct_below_15']

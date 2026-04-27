@@ -1,12 +1,13 @@
 #!/bin/bash
-#BSUB -J simulate_cuda
+#BSUB -J Task_8
 #BSUB -q gpuv100
 #BSUB -R "rusage[mem=4GB]"
+#BSUB -gpu "num=1:mode=exclusive_process"
 #BSUB -B
 #BSUB -N
 ##BSUB -u mekre@dtu.dk
-#BSUB -o Output_%J.out
-#BSUB -e Output_%J.err
+#BSUB -o outputs/Output_%J.out
+#BSUB -e outputs/Output_%J.err
 #BSUB -W 6:00
 #BSUB -n 4
 #BSUB -R "span[hosts=1]"
@@ -23,6 +24,5 @@ conda activate 02613_2026
 # python3 -m line_profiler simulate.py.lprof
 
 # Just for running
-python3 simulate_cuda.py 64
-
+python3 simulate_cuda.py 100
 

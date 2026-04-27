@@ -3,8 +3,7 @@ import sys
 import os
 
 import numpy as np
-import multiprocessing as mp
-from multiprocessing.pool import ThreadPool, Pool
+from multiprocessing.pool import Pool
 import time
 
 import matplotlib.pyplot as plt
@@ -84,10 +83,10 @@ if __name__ == '__main__':
 
     building_ids = building_ids[:N]
 
-    MAX_ITER = 20_000
-    ABS_TOL = 1e-4
-    NUM_PROCS = [i+1 for i in range(M)]
-    RUNS = 10
+    MAX_ITER    = 20_000
+    ABS_TOL     = 1e-4
+    NUM_PROCS   = [i+1 for i in range(M)] # Test with 1 to M processes
+    RUNS        = 5              # Number of runs to average over for more stable timing results
 
     average_run_times = []
     for run in range(RUNS):
@@ -102,32 +101,20 @@ if __name__ == '__main__':
                 chunk_results = pool.map(process_chunk, task_args)
             run_times.append(time.time()-start)
 
-            # Flatten results from all workers and restore original order
-            results_map = {}
-            for chunk_result in chunk_results:
-                for bid, stats in chunk_result:
-                    results_map[bid] = stats
-
-            # Print summary statistics in CSV format
-            stat_keys = ['mean_temp', 'std_temp', 'pct_above_18', 'pct_below_15']
-            print('building_id, ' + ', '.join(stat_keys))
-            for bid in building_ids:
-                stats = results_map[bid]
-                print(f"{bid},", ", ".join(str(stats[k]) for k in stat_keys))
-
+        # Calculate average run times across runs using a running average formula
         average_run_times = [run * a/(run+1) + t/(run+1) for a, t in zip(average_run_times or [0] * len(run_times), run_times)]
 
-    speedups = [run_times[0]/run_times[i] for i in range(len(NUM_PROCS))]
+    # Calculate speedups based on average run times
+    speedups = [average_run_times[0]/average_run_times[i] for i in range(len(NUM_PROCS))]
 
-    print("Run times: ", run_times)
+    print("Average run times across runs: ", average_run_times)
     print("Speedups: ", speedups)
 
     fig, ax = plt.subplots()
     ax.set_title(f"Multicore with static scheduling \n runtimes on {N} floorplans", fontsize=14, fontweight="bold", pad=12)
     ax.set_xlabel("p: number of cores", fontsize=11)
     ax.set_ylabel("Wall clock time in seconds", fontsize=11)
-    ax.plot(NUM_PROCS, run_times) 
-    cwd = os.getcwd()
+    ax.plot(NUM_PROCS, average_run_times)
     fig.tight_layout()
     fig.savefig(cwd+"/plots/runtimes_static")
 
@@ -136,6 +123,5 @@ if __name__ == '__main__':
     ax.set_xlabel("p: number of cores", fontsize=11)
     ax.set_ylabel("Speedups: S(p) = T(1)/T(p)", fontsize=11)
     ax.plot(NUM_PROCS, speedups)
-    cwd = os.getcwd()
     fig.tight_layout()
     fig.savefig(cwd+"/plots/speedups_static")

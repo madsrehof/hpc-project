@@ -1,5 +1,5 @@
 #!/bin/bash
-#BSUB -J simulate_parallel_static
+#BSUB -J Task_5
 #BSUB -q hpc
 #BSUB -R "rusage[mem=4GB]"
 #BSUB -B

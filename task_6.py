@@ -3,8 +3,7 @@ import sys
 import os
 
 import numpy as np
-import multiprocessing as mp
-from multiprocessing.pool import ThreadPool, Pool
+from multiprocessing.pool import Pool
 import time
 
 import matplotlib.pyplot as plt
@@ -77,7 +76,7 @@ if __name__ == '__main__':
     # Run jacobi iterations for each floor plan
     MAX_ITER = 20_000
     ABS_TOL = 1e-4
-    RUNS = 10
+    RUNS = 5
     NUM_PROCS = [i+1 for i in range(M)]
 
     def jacobi_partial(arg):
@@ -90,14 +89,20 @@ if __name__ == '__main__':
     for run in range(RUNS):
         run_times = []
         for num_procs in NUM_PROCS:
-            results_map = {}
+
             start = time.time()
             with Pool(num_procs) as pool:
                 results = list(pool.imap_unordered(jacobi_partial, arr, chunksize=1))
             run_times.append(time.time()-start)
-            print(f"Finished processing {N} floorplans using {num_procs} processor(s). Time taken = {time.time()-start}")
 
+        # Calculate average run times across runs using a running average formula
         average_run_times = [run * a/(run+1) + t/(run+1) for a, t in zip(average_run_times or [0] * len(run_times), run_times)]
+
+    # Calculate speedups based on average run times
+    speedups = [average_run_times[0]/average_run_times[i] for i in range(len(NUM_PROCS))]
+
+    print("Average run times across runs:", average_run_times)
+    print("Speedups:", speedups)
 
     fig, ax = plt.subplots()
     ax.set_title(f"Multicore with dynamic scheduling\n Runtimes on {N} floorplans", fontsize=14, fontweight="bold", pad=12)
@@ -106,9 +111,6 @@ if __name__ == '__main__':
     ax.plot(NUM_PROCS, average_run_times)
     fig.tight_layout()
     fig.savefig(cwd+"/plots/runtimes_dynamic")
-
-    speedups = [average_run_times[0]/average_run_times[i] for i in range(len(NUM_PROCS))]
-    print(speedups)
 
     fig, ax = plt.subplots()
     ax.set_title(f"Multicore with dynamic scheduling\n Speedups on {N} floorplans", fontsize=14, fontweight="bold", pad=12)
