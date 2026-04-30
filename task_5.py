@@ -4,7 +4,7 @@ import os
 
 import numpy as np
 from multiprocessing.pool import Pool
-import time
+from time import perf_counter
 
 import matplotlib.pyplot as plt
 
@@ -42,7 +42,7 @@ def summary_stats(u, interior_mask):
     }
 
 def process_chunk(args):
-    """Process a chunk of floor plans assigned to this worker (static scheduling)."""
+    """Load data, run jacobi, and compute summary stats for a chunk of floor plans."""
     building_ids_chunk, load_dir, max_iter, abs_tol = args
     results = []
     for bid in building_ids_chunk:
@@ -58,7 +58,6 @@ def split_into_chunks(lst, n_chunks):
     chunks = []
     start = 0
     for i in range(n_chunks):
-        # Distribute the remainder one extra item at a time across first chunks
         end = start + k + (1 if i < remainder else 0)
         chunks.append(lst[start:end])
         start = end
@@ -85,26 +84,31 @@ if __name__ == '__main__':
 
     MAX_ITER    = 20_000
     ABS_TOL     = 1e-4
-    NUM_PROCS   = [i+1 for i in range(M)] # Test with 1 to M processes
-    RUNS        = 5              # Number of runs to average over for more stable timing results
+    NUM_PROCS   = [i+1 for i in range(M)]
+    RUNS        = 5
+
+    # One-shot serial load to estimate the inherently-serial baseline cost
+    # (used for Amdahl analysis; the per-p timed runs below re-load inside workers).
+    t_load_start = perf_counter()
+    for bid in building_ids:
+        load_data(LOAD_DIR, bid)
+    load_seconds = perf_counter() - t_load_start
 
     average_run_times = []
     for run in range(RUNS):
         run_times = []
         for num_procs in NUM_PROCS:
-            # Static scheduling: divide floor plans into equal-sized chunks, one per worker
             chunks = split_into_chunks(building_ids, num_procs)
             task_args = [(chunk, LOAD_DIR, MAX_ITER, ABS_TOL) for chunk in chunks]
 
-            start = time.time()
+            # Timed region includes data load + jacobi + summary stats (all parts of the actual work)
+            start = perf_counter()
             with Pool(processes=num_procs) as pool:
                 chunk_results = pool.map(process_chunk, task_args)
-            run_times.append(time.time()-start)
+            run_times.append(perf_counter() - start)
 
-        # Calculate average run times across runs using a running average formula
         average_run_times = [run * a/(run+1) + t/(run+1) for a, t in zip(average_run_times or [0] * len(run_times), run_times)]
 
-    # Calculate speedups based on average run times
     speedups = [average_run_times[0]/average_run_times[i] for i in range(len(NUM_PROCS))]
 
     print("Average run times across runs: ", average_run_times)
@@ -125,3 +129,10 @@ if __name__ == '__main__':
     ax.plot(NUM_PROCS, speedups)
     fig.tight_layout()
     fig.savefig(cwd+"/plots/speedups_static")
+
+    print("===PYTHON_TIMING===")
+    print(f"N={N}")
+    print(f"load_seconds={load_seconds}")
+    print(f"num_procs={NUM_PROCS}")
+    print(f"avg_run_times={average_run_times}")
+    print(f"speedups={speedups}")

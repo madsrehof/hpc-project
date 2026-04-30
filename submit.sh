@@ -1,7 +1,7 @@
 #!/bin/bash
 #BSUB -J simulate
 #BSUB -q hpc
-#BSUB -R "rusage[mem=4GB]"
+#BSUB -R "rusage[mem=1GB]"
 #BSUB -B
 #BSUB -N
 ##BSUB -u mekre@dtu.dk

@@ -2,18 +2,14 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
-OUTPUT_FILES = [
-    "outputs/Output_28256122_1.out",
-    "outputs/Output_28256122_2.out",
-]
+OUTPUT_FILE = "outputs/Output_28256122.out"
 
 def load_results(path):
     return pd.read_csv(path, skiprows=1, skipinitialspace=True)
 
 cwd = os.getcwd()
 
-dfs = [load_results(os.path.join(cwd, f)) for f in OUTPUT_FILES]
-df = pd.concat(dfs, ignore_index=True)
+df = load_results(os.path.join(cwd, OUTPUT_FILE))
 
 print(f"Total floorplans processed: {len(df)}")
 

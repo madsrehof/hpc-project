@@ -15,7 +15,7 @@
 source /dtu/projects/02613_2025/conda/conda_init.sh
 conda activate 02613
 
-python3 simulate_jit.py 100 
+python3 task_7.py 100 
 
 
 

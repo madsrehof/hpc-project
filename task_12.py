@@ -78,10 +78,6 @@ if __name__ == '__main__':
         job_index = int(sys.argv[2]) - 1  # convert to 0-based
 
     all_building_ids = all_building_ids[:N]
-    # half = N // 2
-    # start_idx = job_index * half
-    # end_idx = N if job_index == 1 else half
-    # building_ids = all_building_ids[start_idx:end_idx]
 
     n = len(all_building_ids)
 
@@ -95,14 +91,7 @@ if __name__ == '__main__':
 
     MAX_ITER = 20_000
 
-    start = time()
     all_u = jacobi_cuda_batched(all_u0, all_interior_mask, MAX_ITER)
-    elapsed = time() - start
-
-    print("Job started at time {:.2f} seconds.".format(start), flush=True)
-    print("Job finished at time {:.2f} seconds.".format(start + elapsed), flush=True)
-
-    print(f"Job {job_index + 1}: processed {n} floorplans in {elapsed:.2f} seconds.", flush=True)
 
     # Print summary statistics in CSV format
     stat_keys = ['mean_temp', 'std_temp', 'pct_above_18', 'pct_below_15']

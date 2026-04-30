@@ -2,7 +2,6 @@ from os.path import join
 import sys
 import os
 
-from time import time
 import numpy as np
 
 from view import visualize_colormap
@@ -72,12 +71,9 @@ if __name__ == '__main__':
     ABS_TOL = 1e-4
 
     all_u = np.empty_like(all_u0)
-    start = time()
     for i, (u0, interior_mask) in enumerate(zip(all_u0, all_interior_mask)):
         u = jacobi(u0, interior_mask, MAX_ITER, ABS_TOL)
         all_u[i] = u
-    elapsed = time() - start
-    print(f"Time taken for reference jacobi on {N} buildings: {elapsed:.2f} seconds")
 
     # Print summary statistics in CSV format
     stat_keys = ['mean_temp', 'std_temp', 'pct_above_18', 'pct_below_15']
